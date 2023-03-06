@@ -1,6 +1,7 @@
 import { UserDatabase } from "../database/UserDatabase"
 import { GetUsersInput, GetUsersOutput, LoginInput, LoginOutput, SignupInput, SignupOutput } from "../dtos/UserDTO"
 import { BadRequestError } from "../errors/BadRequestError"
+import { ForbidenError } from "../errors/ForbiddenError"
 import { NotFoundError } from "../errors/NotFoundError"
 import { User } from "../models/User"
 import { IdGenerator } from "../services/IdGenerator"
@@ -15,7 +16,22 @@ export class UserBusiness {
     ) {}
 
     public getUsers = async (input: GetUsersInput): Promise<GetUsersOutput> => {
-        const { q } = input
+        const { q, token } = input
+
+        if(!token){
+            throw new BadRequestError("Token não enviado")
+        }
+
+        const payload = this.tokenManager.getPayload(token)
+
+        if(payload === null) {
+            throw new BadRequestError("Token invalido")
+        }
+
+        if(payload.role !== USER_ROLES.ADMIN) {
+            throw new ForbidenError();
+            
+        }
 
         if (typeof q !== "string" && q !== undefined) {
             throw new BadRequestError("'q' deve ser string ou undefined")
